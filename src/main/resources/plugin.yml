@@ -1,0 +1,11 @@
+name: SidewalkPaver
+version: '${project.version}'
+main: org.stevetribe.sidewalkpaver.SidewalkPaver
+api-version: 1.18
+authors: [ stevetribe ]
+description: Efficiently sidewalk paver.
+
+commands:
+  swp:
+    description: SidewalkPaver，详见群公告
+    usage: /<command> <on/off>，启动/关闭 人行道铺路
