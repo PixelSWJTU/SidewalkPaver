@@ -1,5 +1,6 @@
 package org.stevetribe.sidewalkpaver;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -7,11 +8,14 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.scheduler.BukkitScheduler;
+import org.stevetribe.sidewalkpaver.paver.pavehistory.PaveEventHistory;
 import org.stevetribe.sidewalkpaver.paver.pavehistory.PaveHistories;
 import org.stevetribe.sidewalkpaver.template.Template;
 import org.stevetribe.sidewalkpaver.template.TemplateGenerator;
@@ -36,6 +40,11 @@ public class PaverListener implements Listener {
     }
 
     @EventHandler
+    public void onLeavesDecay(LeavesDecayEvent event){
+        event.setCancelled(true);
+    }
+
+    @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
@@ -55,6 +64,8 @@ public class PaverListener implements Listener {
         Player player = event.getPlayer();
         // 如果为金斧头
         if (material.equals(Material.GOLDEN_AXE)) {
+            event.setCancelled(true);
+
             if (event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
                 Material materialOffhand = event.getPlayer().getInventory().getItemInOffHand().getType();
                 Location location = Objects.requireNonNull(event.getClickedBlock()).getLocation();  // 用户点击的坐标
@@ -70,13 +81,8 @@ public class PaverListener implements Listener {
                     }
                     player.setMetadata("autoPaveFirstPoint", new FixedMetadataValue(SidewalkPaver.getPlugin(SidewalkPaver.class), location));
                     player.sendMessage("已设定第一个点, x: " + location.getX() + ", y: " + location.getY() + ", z: " + location.getZ() + ";");
-                    System.out.println(location.getBlock().getType());
                 }
-                event.setCancelled(true);
             } else if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && event.getHand().equals(HAND)) {
-                System.out.println(event.getAction());
-                System.out.println(event.getHand());
-
                 Material materialOffhand = event.getPlayer().getInventory().getItemInOffHand().getType();
                 Location location = Objects.requireNonNull(event.getClickedBlock()).getLocation();  // 用户点击的坐标
 
@@ -86,10 +92,12 @@ public class PaverListener implements Listener {
                     if (template == null) {
                         player.sendMessage("还未录入模板");
                     } else {
-                        PaveHistories.getUserHistoriesByUserName(player.getName()).addEventHistory(template.placeSingleBaseTemplate(location));
-                        System.out.println(location);
-                        System.out.println(event.getBlockFace());
-                        player.sendMessage("成功粘贴模板");
+                        BukkitScheduler scheduler = Bukkit.getScheduler();      // 下一个tick在新进程异步执行，否则事件会被触发两次
+                        scheduler.runTask(SidewalkPaver.getPlugin(SidewalkPaver.class), () -> {
+                            PaveEventHistory history = template.placeSingleBaseTemplate(location);
+                            PaveHistories.getUserHistoriesByUserName(player.getName()).addEventHistory(history);
+                            player.sendMessage("成功粘贴模板");
+                        });
                     }
                 } else {
                     // offhand: empty       right click
@@ -108,7 +116,10 @@ public class PaverListener implements Listener {
                 player.sendMessage("已设定延伸方向, yaw: " + player.getLocation().getYaw() + ";");
             } else if (event.getAction().equals(Action.RIGHT_CLICK_AIR) && event.getHand().equals(HAND)) {
                 // right click air
-                player.performCommand("swp auto start");
+                BukkitScheduler scheduler = Bukkit.getScheduler();
+                scheduler.runTask(SidewalkPaver.getPlugin(SidewalkPaver.class), () -> {
+                    player.performCommand("swp auto start");
+                });
             }
         }
     }

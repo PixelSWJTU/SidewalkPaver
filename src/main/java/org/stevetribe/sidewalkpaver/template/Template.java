@@ -18,7 +18,6 @@ public class Template {
     }
 
     public void addBlockToTemplate(Location location ,Material material) {
-        System.out.println(material);
         template.put(location, material);
     }
 

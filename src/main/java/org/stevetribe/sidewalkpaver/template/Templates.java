@@ -9,8 +9,6 @@ public class Templates {
 
     @Nullable
     static public Template getTemplateByName(String name) {
-        System.out.println(templates);
-
         return templates.get(name);
     }
 
@@ -19,6 +17,5 @@ public class Templates {
             templates.remove(name);
         }
         templates.put(name, template);
-        System.out.println(templates);
     }
 }

@@ -11,7 +11,6 @@ public class TemplateGenerator {
         Template template = new Template();
 
         bfs.add(location.clone());
-        template.addBlockToTemplate(location.clone(), location.getBlock().getType());
 
         while(bfs.size() != 0) {
             // maintain the linked list

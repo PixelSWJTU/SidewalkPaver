@@ -11,6 +11,8 @@ import org.stevetribe.sidewalkpaver.paver.paveblock.*;
 import org.stevetribe.sidewalkpaver.paver.pavehistory.PaveEventHistory;
 import org.stevetribe.sidewalkpaver.paver.pavehistory.PaveHistories;
 
+import java.util.Locale;
+
 public class PaverCommandExecutor implements org.bukkit.command.CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -83,24 +85,15 @@ public class PaverCommandExecutor implements org.bukkit.command.CommandExecutor 
             // auto pave
             if (args[0].equals("auto")) {
                 if (args[1].equals("0")) {                   // set the first point
-                    if (player.getMetadata("autoPaveFirstPoint").size() == 0) {
-                        player.removeMetadata("autoPaveFirstPoint", SidewalkPaver.getProvidingPlugin(SidewalkPaver.class));
-                    }
-                    player.setMetadata("autoPaveFirstPoint", new FixedMetadataValue(SidewalkPaver.getPlugin(SidewalkPaver.class), player.getLocation()));
+                    setMetaData(player, "autoPaveFirstPoint", player.getLocation());
                     player.sendMessage("已设定第一个点");
                     return true;
                 } else if (args[1].equals("1")) {            // set the second point
-                    if (player.getMetadata("autoPaveSecondPoint").size() == 0) {
-                        player.removeMetadata("autoPaveSecondPoint", SidewalkPaver.getProvidingPlugin(SidewalkPaver.class));
-                    }
-                    player.setMetadata("autoPaveSecondPoint", new FixedMetadataValue(SidewalkPaver.getPlugin(SidewalkPaver.class), player.getLocation()));
+                    setMetaData(player, "autoPaveSecondPoint", player.getLocation());
                     player.sendMessage("已设定第二个点");
                     return true;
                 } else if (args[1].equals("direction")) {    // set the direction of road
-                    if (player.getMetadata("autoPaveDirection").size() == 0) {
-                        player.removeMetadata("autoPaveDirection", SidewalkPaver.getProvidingPlugin(SidewalkPaver.class));
-                    }
-                    player.setMetadata("autoPaveDirection", new FixedMetadataValue(SidewalkPaver.getPlugin(SidewalkPaver.class), player.getLocation()));
+                    setMetaData(player, "autoPaveDirection", player.getLocation());
                     player.sendMessage("已设定延伸方向");
                     return true;
                 } else if (args[1].equals("start")) {         // start auto pave
@@ -110,14 +103,37 @@ public class PaverCommandExecutor implements org.bukkit.command.CommandExecutor 
                         player.sendMessage("请先设置好第一个点、第二个点、方向");
                         return true;
                     }
+                    if (player.getMetadata("sidewalkWidth").size() == 0) {
+                        player.sendMessage("请先设置道路宽度");
+                        return true;
+                    }
+                    if (player.getMetadata("sidewalkRoad").size() == 0) {
+                        player.sendMessage("未设置road，设定为默认的平滑石台阶SMOOTH_STONE_SLAB");
+                        setMetaData(player, "sidewalkRoad", "SMOOTH_STONE_SLAB");
+                    }
+                    if (player.getMetadata("sidewalkMarker").size() == 0) {
+                        player.sendMessage("未设置Marker，设定为默认的钻石块DIAMOND_BLOCK");
+                        setMetaData(player, "sidewalkMarker", "DIAMOND_BLOCK");
+                    }
+                    if (player.getMetadata("sidewalkLine").size() == 0) {
+                        player.sendMessage("未设置Line，设定为默认的平滑石台阶SMOOTH_STONE_SLAB");
+                        setMetaData(player, "sidewalkLine", "SMOOTH_STONE_SLAB");
+                    }
+
                     // autoPave logic
                     player.sendMessage("现在开始执行自动铺路");
-                    AutoPaver paver = new AutoPaver(player);
-                    assert player.getMetadata("autoPaveFirstPoint").get(0) != null;
-                    boolean status = paver.autoPave(
+                    AutoPaver paver = new AutoPaver(
+                            player,
                             (Location) player.getMetadata("autoPaveFirstPoint").get(0).value(),
                             (Location) player.getMetadata("autoPaveSecondPoint").get(0).value(),
-                            (Location) player.getMetadata("autoPaveDirection").get(0).value());
+                            (Location) player.getMetadata("autoPaveDirection").get(0).value(),
+                            Integer.parseInt(player.getMetadata("sidewalkWidth").get(0).value().toString()),
+                            Material.getMaterial(player.getMetadata("sidewalkRoad").get(0).value().toString()),
+                            Material.getMaterial(player.getMetadata("sidewalkMarker").get(0).value().toString()),
+                            Material.getMaterial(player.getMetadata("sidewalkLine").get(0).value().toString())
+                    );
+                    assert player.getMetadata("autoPaveFirstPoint").get(0) != null;
+                    boolean status = paver.autoPave();
 
                     if (status) {
                         player.sendMessage("自动铺路执行完毕");
@@ -134,70 +150,118 @@ public class PaverCommandExecutor implements org.bukkit.command.CommandExecutor 
                 return false;
             }
 
-            // now, all logic is related with "set", so check if it is null now.
-            PaverBlockSet set = PaverConfig.getPaverBlockSetByUserName(player.getName());
-            if (set == null) {
-                player.sendMessage("请先使用命令/sp new新建配置");
-                return true;
-            }
+//            // now, all logic is related with "set", so check if it is null now.
+//            PaverBlockSet set = PaverConfig.getPaverBlockSetByUserName(player.getName());
+//            if (set == null) {
+//                player.sendMessage("请先使用命令/sp new新建配置");
+//                return true;
+//            }
+//
+//            // /rp add <type> <PaveBlockName>
+//            if (args[0].equals("add")) {
+//                String paveBlockName = args[1];
+//                PaveBlockType type;
+//                String paveBlockTypeName = args[2];
+//
+//                if (paveBlockTypeName.equals("const")) {
+//                    type = PaveBlockType.CONST;
+//                } else if (paveBlockTypeName.equals("organised")) {
+//                    type = PaveBlockType.ORGANISED;
+//                } else {
+//                    player.sendMessage("无效的路块类型，可选const, organised");
+//                    return true;
+//                }
+//
+//                boolean status = set.addNewPaveBlock(paveBlockName, type);
+//                if (!status) {
+//                    player.sendMessage("该路块名称已存在");
+//                    return true;
+//                }
+//                player.sendMessage("成功添加" + paveBlockName);
+//                return true;
+//            }
 
             // /rp add <type> <PaveBlockName>
-            if (args[0].equals("add")) {
-                String paveBlockName = args[1];
-                PaveBlockType type;
-                String paveBlockTypeName = args[2];
-
-                if (paveBlockTypeName.equals("const")) {
-                    type = PaveBlockType.CONST;
-                } else if (paveBlockTypeName.equals("organised")) {
-                    type = PaveBlockType.ORGANISED;
-                } else {
-                    player.sendMessage("无效的路块类型，可选const, organised");
-                    return true;
-                }
-
-                boolean status = set.addNewPaveBlock(paveBlockName, type);
-                if (!status) {
-                    player.sendMessage("该路块名称已存在");
-                    return true;
-                }
-                player.sendMessage("成功添加" + paveBlockName);
-                return true;
-            }
-
-            if (args.length < 4) {
-                return false;
-            }
-
             if (args[0].equals("set")) {
-                // /rp set <PaveBlockName> material <MaterialName>
-                PaveBlock paveBlock = set.getUserPaveBlockByName(args[1]);
-                if (paveBlock == null) {
-                    player.sendMessage("输入的路块名称不存在");
+                if (args[1].equals("width")) {
+                    if (!args[2].matches("-?\\d+(\\.\\d+)?")) {    // is number?
+                        player.sendMessage("请输入数字");
+                    } else {
+                        setMetaData(player, "sidewalkWidth", Integer.parseInt(args[2]));
+                        player.sendMessage("成功设置道路宽度为" + args[2]);
+                    }
                     return true;
-                }
-
-                if (args[2].equals("material")) {
-                    ConstantPaveBlock constantPaveBlock = (ConstantPaveBlock) paveBlock;
-                    Material material = Material.getMaterial(args[3]);
-
+                } else if (args[1].equals("road")) {
+                    Material material = Material.getMaterial(args[2].toUpperCase());
                     if (material == null) {
                         player.sendMessage("输入的材质不存在");
-                        return true;
+                    } else {
+                        setMetaData(player, "sidewalkRoad", material);
+                        player.sendMessage("成功设置材质为" + material);
                     }
-                    constantPaveBlock.setMaterial(material);
-                    player.sendMessage("材质设置成功");
+                    return true;
+                } else if (args[1].equals("marker")) {
+                    Material material = Material.getMaterial(args[2].toUpperCase());
+                    if (material == null) {
+                        player.sendMessage("输入的材质不存在");
+                    } else {
+                        setMetaData(player, "sidewalkMarker", material);
+                        player.sendMessage("成功设置Marker为" + material);
+                    }
+                    return true;
+                } else if (args[1].equals("line")) {
+                    Material material = Material.getMaterial(args[2].toUpperCase());
+                    if (material == null) {
+                        player.sendMessage("输入的材质不存在");
+                    } else {
+                        setMetaData(player, "sidewalkLine", material);
+                        player.sendMessage("成功设置line为" + material);
+                    }
                     return true;
                 }
-
-                // /rp set <PaveBlockName> template <TemplateName>
-
-                // /rp set <PaveBlockName> interval <intervalSeconds>
+                return false;
             }
+//
+//            if (args.length < 4) {
+//                return false;
+//            }
+
+//            if (args[0].equals("sett")) {
+//                // /rp set <PaveBlockName> material <MaterialName>
+//                PaveBlock paveBlock = set.getUserPaveBlockByName(args[1]);
+//                if (paveBlock == null) {
+//                    player.sendMessage("输入的路块名称不存在");
+//                    return true;
+//                }
+//
+//                if (args[2].equals("material")) {
+//                    ConstantPaveBlock constantPaveBlock = (ConstantPaveBlock) paveBlock;
+//                    Material material = Material.getMaterial(args[3]);
+//
+//                    if (material == null) {
+//                        player.sendMessage("输入的材质不存在");
+//                        return true;
+//                    }
+//                    constantPaveBlock.setMaterial(material);
+//                    player.sendMessage("材质设置成功");
+//                    return true;
+//                }
+
+            // /rp set <PaveBlockName> template <TemplateName>
+
+            // /rp set <PaveBlockName> interval <intervalSeconds>
+//            }
 
             return false;       // invalid argument, return false, show usage.
         }
         SidewalkPaver.getPlugin(SidewalkPaver.class).getLogger().warning("This is a player command");
         return false;               // console use, return false, show usage
+    }
+
+    public static void setMetaData(Player player, String key, Object data) {
+        if (player.getMetadata(key).size() == 0) {
+            player.removeMetadata(key, SidewalkPaver.getProvidingPlugin(SidewalkPaver.class));
+        }
+        player.setMetadata(key, new FixedMetadataValue(SidewalkPaver.getPlugin(SidewalkPaver.class), data));
     }
 }
