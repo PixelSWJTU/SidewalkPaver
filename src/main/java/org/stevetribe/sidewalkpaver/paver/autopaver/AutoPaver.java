@@ -82,39 +82,10 @@ public class AutoPaver {
         sidewalkPath.add(locationB.clone());
 
         // pave
-        Iterator<Location> sidewalkBlock = sidewalkPath.descendingIterator();
-        PaveEventHistory paveEventHistory = new PaveEventHistory();
-
-        while (sidewalkBlock.hasNext()) {
-            PaveEventHistory history = new PaveEventHistory();
-            history = this.paveSidewalk(sidewalkBlock.next(), direction);
-            if (history.getSize() > 0) {
-                while (history.getSize() > 0) {
-                    paveEventHistory.addBlockHistory(history.getLastBlockHistory());
-                    history.removeLastBlockHistory();
-                }
-            }
-        }
-        PaveHistories.getUserHistoriesByUserName(player.getName()).addEventHistory(paveEventHistory);
+        paveSidewalk(sidewalkPath, direction);
 
         return true;
     }
-
-//    static private boolean isBlockAlreadyVisited(LinkedList<Location> locations, Location locationA, int xOffset, int zOffset) {
-//        if(locations != null) {
-//            Iterator<Location> loc = locations.descendingIterator();
-//            Location loc1 = new Location(locationA.getWorld(), locationA.getX() + xOffset, locationA.getY(), locationA.getZ() + zOffset);
-//
-//            System.out.println("dup check " + "x: " + loc1.getX() + "; z: " + loc1.getZ() + ";" + loc1.getBlock().getType().equals(Material.SMOOTH_STONE_SLAB));
-//
-//            while(loc.hasNext()) {
-//                if(loc.next().equals(loc1)) {
-//                    return true;
-//                };
-//            }
-//        }
-//        return false;
-//    }
 
     private boolean isBlockOnTheSideWalk(Location location, double xOffset, double zOffset) {
         Location loc = new Location(location.getWorld(), location.getX() + xOffset, location.getY(), location.getZ() + zOffset);
@@ -125,62 +96,59 @@ public class AutoPaver {
         return loc.getBlock().getType().equals(this.line);
     }
 
-    private PaveEventHistory paveSidewalk(Location loc, Location direction) {
-        int xIncrement;
-        int zIncrement;
-        Location templateLocation = null;
-        LinkedList<Location> templateLocations = new LinkedList<>();
+    private void paveSidewalk(LinkedList<Location> sidewalkPath, Location direction) {
+        Iterator<Location> sidewalkBlock = sidewalkPath.descendingIterator();
         PaveEventHistory paveEventHistory = new PaveEventHistory();
-        PaveEventHistory templateHistory;
+        LinkedList<Location> templateLocations = new LinkedList<>();
+        Template template = Templates.getTemplateByName(this.player.getName());
 
-        if (direction.getYaw() > -45 && direction.getYaw() <= 45) {              // positive z
-            xIncrement = 0;
-            zIncrement = 1;
-        } else if (direction.getYaw() > 45 && direction.getYaw() <= 135) {       // negative x
-            xIncrement = -1;
-            zIncrement = 0;
-        } else if (direction.getYaw() > 135 || direction.getYaw() <= -135) {     // negative z
-            xIncrement = 0;
-            zIncrement = -1;
-        } else {                                                                // positive x
-            xIncrement = 1;
-            zIncrement = 0;
-        }
+        while (sidewalkBlock.hasNext()) {
+            Location loc = sidewalkBlock.next();
 
-        // pave a single line of sidewalk
-        for (int i = 0; i < width; i++) {
-            loc.setX(loc.getX() + xIncrement);
-            loc.setZ(loc.getZ() + zIncrement);
-            Material oldMaterial = loc.getBlock().getType();
-            Material newMaterial;
+            int xIncrement;
+            int zIncrement;
 
-            if (loc.getBlock().getType().equals(marker)) {
-                templateLocation = loc.clone();
-                newMaterial = loc.getBlock().getType();
-            } else {
-                loc.getBlock().setType(road);
-                newMaterial = road;
+            if (direction.getYaw() > -45 && direction.getYaw() <= 45) {              // positive z
+                xIncrement = 0;
+                zIncrement = 1;
+            } else if (direction.getYaw() > 45 && direction.getYaw() <= 135) {       // negative x
+                xIncrement = -1;
+                zIncrement = 0;
+            } else if (direction.getYaw() > 135 || direction.getYaw() <= -135) {     // negative z
+                xIncrement = 0;
+                zIncrement = -1;
+            } else {                                                                 // positive x
+                xIncrement = 1;
+                zIncrement = 0;
             }
-            paveEventHistory.addBlockHistory(loc.clone(), oldMaterial, newMaterial);
-        }
 
-        // detect template location
-        if (templateLocation != null) {
-            Template template = Templates.getTemplateByName(this.player.getName());
-            if (template != null) {
-                templateLocations.addLast(templateLocation);
-                templateHistory = template.placeSingleBaseTemplate(templateLocation);
-                while (templateHistory.getSize() > 0) {
-                    assert templateHistory.getLastBlockHistory() != null;
-                    System.out.println(templateHistory.getSize());
-                    paveEventHistory.addBlockHistory(templateHistory.getLastBlockHistory());
-                    templateHistory.removeLastBlockHistory();
+            // pave a single line of sidewalk
+            for (int i = 0; i < width; i++) {
+                loc.setX(loc.getX() + xIncrement);
+                loc.setZ(loc.getZ() + zIncrement);
+                Material oldMaterial = loc.getBlock().getType();
+                Material newMaterial;
+
+                if (loc.getBlock().getType().equals(marker)) {
+                    // detect and record template location
+                    templateLocations.addLast(loc.clone());
+                    newMaterial = loc.getBlock().getType();
+                } else {
+                    loc.getBlock().setType(road);
+                    newMaterial = road;
                 }
+                paveEventHistory.addBlockHistory(loc.clone(), oldMaterial, newMaterial);
             }
         }
 
-        // pave all the templates
+        while (templateLocations.size() > 0 && template != null){
+            Location templateLocation = templateLocations.getLast();
+            templateLocations.removeLast();
 
-        return paveEventHistory;
+            PaveEventHistory templateHistory = template.placeSingleBaseTemplate(templateLocation);
+            paveEventHistory.appendAnotherEventHistory(templateHistory);
+        }
+
+        PaveHistories.getUserHistoriesByUserName(player.getName()).addEventHistory(paveEventHistory);
     }
 }

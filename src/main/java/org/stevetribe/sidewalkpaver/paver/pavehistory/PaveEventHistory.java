@@ -35,6 +35,14 @@ public class PaveEventHistory {
         this.eventHistories.addLast(new PaveBlockHistory(blockHistory.getLocation(), blockHistory.getOldMaterial(), blockHistory.getNewMaterial()));
     }
 
+    private LinkedList<PaveBlockHistory> getEventHistories() {
+        return eventHistories;
+    }
+
+    public void appendAnotherEventHistory(PaveEventHistory history){
+        eventHistories.addAll(history.getEventHistories());
+    }
+
     public void undo() {
         for(int i = eventHistories.size() - 1; i >=0; i--) {
             eventHistories.get(i).undo();
