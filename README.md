@@ -1,4 +1,4 @@
 # SidewalkPaver
-+ Pave sidewalks beside a line, and auto place tress along the road.
-+ Copy and paste a template building with just one click.
-+ Undo or redo all you operations.
++ Pave sidewalks beside a line, and auto place customizable template buildings(trees etc.) on the sideroad.
++ Create, paste, and use a template with just one click.
++ Undo and redo all you operations.
