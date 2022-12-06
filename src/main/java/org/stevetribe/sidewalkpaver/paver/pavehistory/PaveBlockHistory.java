@@ -1,36 +1,30 @@
 package org.stevetribe.sidewalkpaver.paver.pavehistory;
 
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 
 public class PaveBlockHistory {
-    private final Location location;
-    private final Material oldMaterial;
-    private final Material newMaterial;
+    private final BlockState oldBlock;
+    private final BlockState newBlock;
 
-    PaveBlockHistory(Location location, Material oldMaterial, Material newMaterial) {
-        this.location = location;
-        this.oldMaterial = oldMaterial;
-        this.newMaterial = newMaterial;
+    PaveBlockHistory(BlockState oldBlock, BlockState newBlock) {
+        this.oldBlock = oldBlock;
+        this.newBlock = newBlock;
     }
 
-    public Location getLocation() {
-        return location;
+    public Block getNewBlock() {
+        return oldBlock.getBlock();
     }
 
-    public Material getOldMaterial() {
-        return oldMaterial;
-    }
-
-    public Material getNewMaterial() {
-        return newMaterial;
+    public Block getOldBlock() {
+        return oldBlock.getBlock();
     }
 
     public void undo() {
-        location.getBlock().setType(oldMaterial);
+        oldBlock.update(true);
     }
 
     public void redo() {
-        location.getBlock().setType(newMaterial);
+        newBlock.update(true);
     }
 }

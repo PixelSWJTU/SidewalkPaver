@@ -2,6 +2,8 @@ package org.stevetribe.sidewalkpaver.paver.autopaver;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.stevetribe.sidewalkpaver.paver.pavehistory.PaveEventHistory;
 import org.stevetribe.sidewalkpaver.paver.pavehistory.PaveHistories;
@@ -126,18 +128,15 @@ public class AutoPaver {
             for (int i = 0; i < width; i++) {
                 loc.setX(loc.getX() + xIncrement);
                 loc.setZ(loc.getZ() + zIncrement);
-                Material oldMaterial = loc.getBlock().getType();
-                Material newMaterial;
+                BlockState oldBlock = loc.getBlock().getState();
 
                 if (loc.getBlock().getType().equals(marker)) {
                     // detect and record template location
                     templateLocations.addLast(loc.clone());
-                    newMaterial = loc.getBlock().getType();
                 } else {
                     loc.getBlock().setType(road);
-                    newMaterial = road;
                 }
-                paveEventHistory.addBlockHistory(loc.clone(), oldMaterial, newMaterial);
+                paveEventHistory.addBlockHistory(oldBlock, loc.getBlock().getState());
             }
         }
 

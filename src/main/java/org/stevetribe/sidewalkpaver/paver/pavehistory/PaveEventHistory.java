@@ -2,8 +2,12 @@ package org.stevetribe.sidewalkpaver.paver.pavehistory;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.data.BlockData;
 
 import javax.annotation.Nullable;
+import java.util.Iterator;
 import java.util.LinkedList;
 
 public class PaveEventHistory {
@@ -27,12 +31,12 @@ public class PaveEventHistory {
         this.eventHistories.removeLast();
     }
 
-    public void addBlockHistory(Location location, Material oldMaterial, Material newMaterial) {
-        this.eventHistories.addLast(new PaveBlockHistory(location, oldMaterial, newMaterial));
+    public void addBlockHistory(BlockState oldBlock, BlockState newBlock) {
+        this.eventHistories.addLast(new PaveBlockHistory(oldBlock, newBlock));
     }
 
     public void addBlockHistory(PaveBlockHistory blockHistory) {
-        this.eventHistories.addLast(new PaveBlockHistory(blockHistory.getLocation(), blockHistory.getOldMaterial(), blockHistory.getNewMaterial()));
+        this.eventHistories.addLast(new PaveBlockHistory(blockHistory.getOldBlock().getState(), blockHistory.getNewBlock().getState()));
     }
 
     private LinkedList<PaveBlockHistory> getEventHistories() {
@@ -44,16 +48,16 @@ public class PaveEventHistory {
     }
 
     public void undo() {
-        for(int i = eventHistories.size() - 1; i >=0; i--) {
-            eventHistories.get(i).undo();
+        for (PaveBlockHistory eventHistory : eventHistories) {
+            eventHistory.undo();
         }
         this.isEventCancelled = true;
     }
 
     public void redo() {
-        for(int i = eventHistories.size() - 1; i >=0; i--) {
-            eventHistories.get(i).redo();
+        for (PaveBlockHistory eventHistory : eventHistories) {
+            eventHistory.redo();
         }
-        this.isEventCancelled = false;
+        this.isEventCancelled = true;
     }
 }
